@@ -1,0 +1,336 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Aug 19 10:54:20 2021
+
+@author: arul
+"""
+import os, grp, time
+import numpy as np
+import argparse
+import subprocess
+import shutil
+
+# Instantiate the parser
+parser = argparse.ArgumentParser(description='Lpinta description')
+parser.add_argument('--test', action='store_true', help='Test on file availability and permissions')
+parser.add_argument('--nodel', action='store_true', help='To keep processed data files')
+parser.add_argument('--pardir', type=str, help='Pulsar parameter file directory')
+parser.add_argument('input_dir', type=str, help= 'Input data directory')
+parser.add_argument('working_dir', type=str, help= 'Working directory')
+
+args = parser.parse_args()
+
+basepath = args.input_dir
+workDir = args.working_dir
+pardir = args.pardir
+pipeline_file = (os.getcwd()+"/Lpipeline.in")
+ap = ['gsb2dat','dspsr','pdmp','ps2pdf']
+
+def file_permission_check(fileck,):
+    read = os.access(fileck, os.R_OK) # Check for Read access
+    size = os.stat(fileck).st_size
+    if (size > 1) == True and read == True:
+        print(fileck+"     Read permission.... [OK]")
+        file_permission_check.exit_process = 0
+    else:
+        print(fileck+"     Read permission.... [NO]")
+        print("[EXITING]")
+        
+        file_permission_check.exit_process = 1
+
+def app_permission_check(app):
+    print("[CHEAK] checking for Apps...  ")
+    for j in app:
+        if shutil.which(j):
+            ap_path = shutil.which(j)
+            #Check for Existance, Read and Execulable Access
+            if os.access(ap_path, os.F_OK | os.R_OK | os.X_OK) is True:
+                print(" ["+j+"]"+" is available... "+ap_path)
+                app_permission_check.exit_process = 0
+            else:
+                print("Required apps are not available")
+        elif not shutil.which(j):
+            print(j+ " is NOT AVAILABLE")
+            print("[EXITING]")         
+            app_permission_check.exit_process = 1
+
+#Check group permission for all files specified in pipeline           
+def group_permission(file_path):
+    stat_info = os.stat(file_path)
+    gid = stat_info.st_gid
+    file_grp = grp.getgrgid(gid)[0]
+    gid = os.getgid()
+    group_info = grp.getgrgid(gid)
+    user_grp = group_info.gr_name
+    if file_grp == user_grp:
+        print("group permission ...[OK]")
+        group_permission.exit_process = 0
+    else:
+        print("group permission ...[NO]")
+        print("[EXITING]")
+        
+        group_permission.exit_process = 1   
+
+def test_permissions(list_file, app_list):   
+    app_permission_check(app_list)    #calling app_permission_check function
+    for i in range(0, list_file):
+        file_permission_check(v[i])   #calling file_permission_check function
+        group_permission(v[i])        #calling group_permission function
+    if file_permission_check.exit_process == app_permission_check.exit_process == group_permission.exit_process == 0:
+        test_permissions.exit_process = 0
+    else:
+        test_permissions.exit_process = 1
+
+def data_process(workDir, cp_files, list_file):
+    if not cp_files is "[]":
+        os.chdir(workDir)
+        print("Coping files")        
+        for f in range(0,len(cp_files)):
+            h = f
+        print(f)
+        copy(h,workDir)
+        mem_check()
+        gsb2dat(SourceName, rcp1, rcp2, lcp1, lcp2, timeStamp, nchan, frequency, output)
+        dspsr(cpu, parfile, int_time, nbins, fil_chan, SourceName, output)
+        pdmp(output)
+        ps2pdf(output)
+        remove(rmve)
+
+# Copy files from Data directory to Work directory       
+def copy(f, workDir):
+    for n in range(0, len(cp_files[f])):
+        command = ['cp',cp_files[f][n], workDir]
+        process = subprocess.Popen(command)
+        stdoutdata, stdouterr = process.communicate()
+        data_process_code = process.returncode
+        if data_process_code == 0:
+            print(cp_files[f][n]+" copied")
+        else:
+            print(cp_files[f][n]+"is NOT copied")
+    print("Coping process finished")
+
+#gpu memory availability check to perform gsb2dat < Required memory is 3000Mb >
+def gpumem_check():
+    n = np.array(((subprocess.check_output(["nvidia-smi","--query-gpu=memory.free","--format=csv,noheader,nounits"])).decode().split()),dtype = int)
+    for x in n:                    
+        if x > 3000:
+            gpumem_check.status = True;
+            print("Avilable GPU memory")
+        else:                               
+            gpumem_check.status = False;
+    print(gpumem_check.status)
+    time.sleep(2)
+
+def mem_check():
+    while True:
+        gpumem_check()
+        if gpumem_check.status == True:
+            break
+
+# gsb2dat  > Compains 4 legacy GMRT files into 1 file   
+def gsb2dat(SourceName, rcp1, rcp2, lcp1, lcp2, timeStamp, nchan, frequency, output):            
+    for inputs in range(0, 1):
+        print("[gsb2dat] for "+ SourceName)
+        proc_command = ['gsb2dat', ' -r1 '+rcp1, ' -r2 '+rcp2, ' -l1 '+lcp1, ' -l2 '+lcp2, ' -t '+timeStamp, ' -S '+SourceName, ' -n '+str(nchan), ' -f '+str(frequency), ' -o '+output]
+        a = [(''.join(proc_command))]
+        print(a)
+        stat = subprocess.Popen(a, shell=True)
+        stdoutdata, stdouterr = stat.communicate()
+        g2d_process_code = stat.returncode
+        if g2d_process_code == 0:
+            print(SourceName+" gsb2dat processed")
+        else:
+            print("[ERROR] ...gsb2dat process error")
+        print("[QUITING]")
+
+#dspsr > Fold data with parfile >> .fits output
+def dspsr(cpu, parfile, int_time, nbins, fil_chan, SourceName, output):
+    input_data = output+'.dat'
+    for inputs in range(0, 1):
+        print("[dspsr] for "+ SourceName)
+        dspsr_command = ['dspsr '+input_data,' -cpu '+cpu, ' -E '+parfile, ' -L '+int_time, ' -b '+nbins, ' -F '+fil_chan, ' -N '+SourceName, ' -A -e .fits -O '+output]
+        a = [(''.join(dspsr_command))]
+        print(a)
+        dspsr_status = subprocess.Popen(a, shell=True)
+        stdoutdata, stdouterr = dspsr_status.communicate()
+        dspsr_process_code = dspsr_status.returncode
+        if dspsr_process_code == 0:
+            print(SourceName+" dspsr processed")
+        else:
+            print("[ERROR] ...dspsr process error")
+            print("[QUITING]")
+
+#pdmp > to get dm and period >> output .ps
+def pdmp(output):
+    pdmp_input = output+'.fits'
+    for inputs in range(0, 1):
+        print("[pdmp] for "+ SourceName)
+        pdmp_command = ['pdmp -g '+output+'.ps/ps '+pdmp_input]
+        a = [(''.join(pdmp_command))]
+        print(a)
+        pdmp_status = subprocess.Popen(a, shell=True)
+        stdoutdata, stdouterr = pdmp_status.communicate()
+        pdmp_process_code = pdmp_status.returncode
+        if pdmp_process_code == 0:
+            print(SourceName+" pdmp processed")
+        else:
+            print("[ERROR] ...pdmp process error")
+            print("[QUITING]")
+
+#ps2pdf > converts .ps file to .pdf
+def ps2pdf(output):
+    ps2pdf_input = output+'.ps'
+    for inputs in range(0, 1):
+        print("[ps2pdf] for "+ SourceName)
+        ps2pdf_command = ['ps2pdf '+ ps2pdf_input+' '+ output +'.pdf']
+        a = [(''.join(ps2pdf_command))]
+        print(a)
+        ps2pdf_status = subprocess.Popen(a, shell=True)
+        stdoutdata, stdouterr = ps2pdf_status.communicate()
+        ps2pdf_process_code = ps2pdf_status.returncode
+        if ps2pdf_process_code == 0:
+            print(SourceName+" ps2pdf processed")
+        else:
+            print("[ERROR] ...ps2pdf process error")
+            print("[QUITING]")
+
+
+def remove(rmve):
+    if args.nodel is False:
+        for rfile in range(0, len(rmve)):
+            print(rmve[rfile])
+            os.remove(rmve[rfile])
+        os.remove(workDir+'/'+output+'.dat')
+        os.remove(workDir+'/'+output+'.hdr')
+        print("Remove process finished") 
+
+a = []
+b = []
+cp_files = []
+fileObj = open(pipeline_file)
+
+for line in fileObj:
+    line = line.strip()
+    if not line.startswith("#"):
+        a.append(line)
+for l in a:
+    b.append(l.split())
+file_list = np.zeros(np.shape(b), dtype=str)
+file_list = b
+b = []
+
+for inputs in range(0, len(file_list)):
+    # Convert the read parameters into corresponding data types
+    SourceName = str(file_list[inputs][0])
+    rcp1 = str(file_list[inputs][1])
+    rcp2 = str(file_list[inputs][2])
+    lcp1 = str(file_list[inputs][3])
+    lcp2 = str(file_list[inputs][4])
+    timeStamp = str(file_list[inputs][5])
+    frequency = str(file_list[inputs][6])
+    nchan = int(file_list[inputs][7])
+    int_time = str(file_list[inputs][8])
+    nbins = str(file_list[inputs][9])
+    fil_chan = str(str(file_list[inputs][10])+':D')
+    cpu = str('0,1')
+    mjd = str(rcp1.rsplit('.')[1])
+    output = str(SourceName+"_"+mjd+"_"+frequency+".Lnorfix")
+
+    if pardir == None:
+        parfile = str("/Data/prabu/FORAPANDIAN/parfilesinpta/"+ SourceName +'.par')        #Default location
+    else:
+        parfile = str(str(pardir) + SourceName +'.par')   #Custom location
+    print('parfile = '+ parfile)
+
+    x =[]
+    y =[]
+    z =[]
+    array =[]
+    parray=[]
+    rmfiles =[]
+    reqFiles = [rcp1, rcp2, lcp1, lcp2, timeStamp]
+    for entry in os.listdir(basepath):
+        y.append(entry)
+    n = np.zeros(np.shape(y), dtype=str)
+    n = y
+    y = []
+    check = all(item in n for item in reqFiles)
+    if check is True:
+        print("All files for "+ SourceName +" in "+ basepath)
+        for filename in reqFiles:
+            cpn = (basepath+"/"+str(filename))
+            wdfn = (workDir+'/'+str(filename))
+            parray.append(cpn)
+            rmfiles.append(wdfn)
+        v = np.zeros(np.shape(parray), dtype=str)
+        rmve = np.zeros(np.shape(rmfiles), dtype=str)
+        v = parray
+        rmve = rmfiles
+        parray = []
+        rmfiles =[]
+    elif check is False:
+        ck_status = []
+        for entry in os.listdir(basepath):
+            if os.path.isdir(os.path.join(basepath, entry)):
+                sub = [entry]
+                folder = (basepath+"/"+ str(sub[0]))
+                position = np.zeros(np.shape(folder), dtype=str)
+                position = folder
+                os.chdir(folder)
+                for entry in os.listdir(folder):
+                    z.append(entry)
+                m = np.zeros(np.shape(y), dtype=str)
+                m = z
+                #print(z)
+                check_file = all(item in z for item in reqFiles)
+                ck_status.append(str(check_file))
+                z = []
+        try:
+            a = ck_status.index('True')
+            #print(a)
+            pos_list = []
+            for nentry in os.listdir(basepath):
+                if os.path.isdir(os.path.join(basepath, nentry)):
+                    sob = nentry
+                    pos_list.append(sob)
+                #print(pos_list)
+            for filename in reqFiles:
+                cpn = (basepath+'/'+str(pos_list[a])+"/"+str(filename))
+                wdfn = (workDir+'/'+str(filename))
+                parray.append(cpn)
+                rmfiles.append(wdfn)
+            v = np.zeros(np.shape(parray), dtype=str)
+            rmve = np.zeros(np.shape(rmfiles), dtype=str)
+            v = parray
+            rmve = rmfiles
+            parray = []
+            rmfiles =[]
+        except ValueError as e:
+            del v
+                
+    ck_status = "v" in locals()
+    if ck_status is False:
+        print("specified files for "+ SourceName +" are not in the Input data location")
+        print("[Quiting...]")
+        exit()                      
+    p = np.size(v)
+    
+    if args.test is True:             # will initiating test
+        print("[CHECK].... checking file permissions for "+SourceName )
+        test_permissions(p, ap)
+        print("[END]... Test over")
+        if test_permissions.exit_process == 0:
+            print("Requirments Satisfied for. "+ SourceName +" is Ready to process")    
+        elif test_permissions.exit_process != 0: 
+            print("Fulfil the requirments!")    
+    elif args.test is False:         # will perform test before execution
+        test_permissions(p, ap)
+        if test_permissions.exit_process == 0:
+            cp_files.append(v)
+            data_process(workDir, cp_files, file_list)
+        elif test_permissions.exit_process != 0: 
+            print("[Quiting]")
+            exit()
+
+
