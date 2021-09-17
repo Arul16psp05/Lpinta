@@ -1,4 +1,4 @@
-#source_name	RCP_1	RCP_2	LCP_1	LCP_2	TimeStamp	Frequency NChan  Int_time	nbins  fillterbank_chan  output_name
-J1939+2134     B1937+21.250416.1280.30ns.Pol-R1a.dat   B1937+21.250416.1280.30ns.Pol-R2a.dat    B1937+21.250416.1280.30ns.Pol-L1a.dat    B1937+21.250416.1280.30ns.Pol-L2a.dat    B1937+21.250416.1280.30nsa.timestamp     1292.0    512   10  256 64    B1937+21a  
-J1939+2134     B1937+21.250416.1280.30ns.Pol-R1b.dat   B1937+21.250416.1280.30ns.Pol-R2b.dat    B1937+21.250416.1280.30ns.Pol-L1b.dat    B1937+21.250416.1280.30ns.Pol-L2b.dat    B1937+21.250416.1280.30nsb.timestamp     1292.0    512   10  256 64	B1937+21b
-J1939+2134     B1937+21.250416.1280.30ns.Pol-R1c.dat   B1937+21.250416.1280.30ns.Pol-R2c.dat    B1937+21.250416.1280.30ns.Pol-L1c.dat    B1937+21.250416.1280.30ns.Pol-L2c.dat    B1937+21.250416.1280.30nsc.timestamp     1292.0    512   10  256 64	B1937+21c
+#source_name	RCP_1 	RCP_2 	LCP_1 	LCP_2 	TimeStamp 	Frequency NChan  Int_time 	nbins  fillterbank_chan 
+J1939+2134     B1937+21.250416.1280.30ns.Pol-R1a.dat   B1937+21.250416.1280.30ns.Pol-R2a.dat    B1937+21.250416.1280.30ns.Pol-L1a.dat    B1937+21.250416.1280.30ns.Pol-L2a.dat    B1937+21.250416.1280.30nsa.timestamp     1292.0    512   10  256 64 
+J1939+2134     B1937+21.250416.1280.30ns.Pol-R1b.dat   B1937+21.250416.1280.30ns.Pol-R2b.dat    B1937+21.250416.1280.30ns.Pol-L1b.dat    B1937+21.250416.1280.30ns.Pol-L2b.dat    B1937+21.250416.1280.30nsb.timestamp     1292.0    512   10  256 64	
+J1939+2134     B1937+21.250416.1280.30ns.Pol-R1c.dat   B1937+21.250416.1280.30ns.Pol-R2c.dat    B1937+21.250416.1280.30ns.Pol-L1c.dat    B1937+21.250416.1280.30ns.Pol-L2c.dat    B1937+21.250416.1280.30nsc.timestamp     1292.0    512   10  256 64	
